@@ -1,48 +1,340 @@
+/*
+ *  This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
 // Thanks to Andy for letting me steal a chunk of his NRT NML, and thanks to Wolf and Frosch as well for their work on making NRT happen.
 // ISR, CHIPS, various New Object sets, have tried to approximate visually interesting industrial yards, harbours, and similar areas where vehicles move about doing work rather than travelling from A to B
 // In this set I aim to provide a proof of concept of how NRT might bring these constructions to life
+
 
 grf {
 	grfid: "DE\04\01";
 	name: string(STR_GRF_NAME);
 	desc: string(STR_GRF_DESCRIPTION);
-	version: 4;
-	min_compatible_version: 4;
-	param 0 {								//Parameter for underlay tile style
-	style_param {			
-		type: int;
-		name: string(STR_PARAM_NAME_STYLES);
-		desc: string(STR_PARAM_DESC_STYLES);
-		min_value: 0;
-		max_value: 2;
-		def_value: 0;
-		names: {
-			0: string(STR_PARAM_VALUE_STYLE_CHIPS);		//Chips & FIRS Style
-			1: string(STR_PARAM_VALUE_STYLE_ISR);		//ISR Style
-			2: string(STR_PARAM_VALUE_STYLE_BOTH);		//Both Styles
-		};
-	}
-}
-
+	version: 6;
+	min_compatible_version: 6;
+	param 0 {								//Parameter for underlay tile style, doesnt do anything anymore
+	    style_param {			
+	    	type: int;
+	    	name: string(STR_PARAM_NAME_STYLES);
+	    	desc: string(STR_PARAM_DESC_STYLES);
+	    	min_value: 0;
+	    	max_value: 2;
+	    	def_value: 0;
+	    	names: {
+	    		0: string(STR_PARAM_VALUE_STYLE_CHIPS);		//Chips & FIRS Style
+	    		1: string(STR_PARAM_VALUE_STYLE_ISR);		//ISR Style
+	    		2: string(STR_PARAM_VALUE_STYLE_BOTH);		//Both Styles
+	    	};
+	    }
+    }
 	param 1 {								//Parameter for depot style
-	depot_param {			
-		type: int;
-		name: string(STR_PARAM_NAME_DEPOTS);
-		desc: string(STR_PARAM_DESC_DEPOTS);
-		min_value: 0;
-		max_value: 4;
-		def_value: 2;
-		names: {
-			0: string(STR_PARAM_VALUE_DEPOT_THEME_WIDE);		//Several Chips & ISR Styles
-			1: string(STR_PARAM_VALUE_DEPOT_THEME_NARROW);		//One Chips and one ISR Style
-			2: string(STR_PARAM_VALUE_DEPOT_THEME_CHRON);		//Year based CHIPS & ISR Depots
-			3: string(STR_PARAM_VALUE_DEPOT_MLSS_WIDE);		//Range of MLSS Style Depots
-			4: string(STR_PARAM_VALUE_DEPOT_MLSS_CHRON);		//Time based MLSS Style
-		};
-	}
+	    depot_param {			
+	    	type: int;
+	    	name: string(STR_PARAM_NAME_DEPOTS);
+	    	desc: string(STR_PARAM_DESC_DEPOTS);
+	    	min_value: 0;
+	    	max_value: 4;
+	    	def_value: 2;
+	    	names: {
+	    		0: string(STR_PARAM_VALUE_DEPOT_THEME_WIDE);		//Several Chips & ISR Styles
+	    		1: string(STR_PARAM_VALUE_DEPOT_THEME_NARROW);		//One Chips and one ISR Style
+	    		2: string(STR_PARAM_VALUE_DEPOT_THEME_CHRON);		//Year based CHIPS & ISR Depots
+	    		3: string(STR_PARAM_VALUE_DEPOT_MLSS_WIDE);		//Range of MLSS Style Depots
+	    		4: string(STR_PARAM_VALUE_DEPOT_MLSS_CHRON);		//Time based MLSS Style
+	    	};
+	    }
+    }
+    	param 2 {
+	    param_houses {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_HOUSES);
+	    	desc: string(STR_PARAM_DESC_HOUSES);
+        }
+    }
+	    param 3 {								//Parameter for mudyard road speed limit
+	        speedlimit_mudyard_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_MUDYARD_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_MUDYARD_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 40;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+	        }
+    }
+	param 4 {								//Parameter for cobblestone road speed limit
+	        speedlimit_cobblestone_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_COBBLE_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_COBBLE_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 50;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+	        }
+    }
+	param 5 {								//Parameter for asphalt road speed limit
+	        speedlimit_asphalt_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ASPHALT_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ASPHALT_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 6 {								//Parameter for cobble electric road speed limit
+	        speedlimit_cobble_electric_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_COBBLE_ELECTRIC_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_COBBLE_ELECTRIC_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 50;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 7 {								//Parameter for asphalt electric road speed limit
+	        speedlimit_asphalt_electric_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ASPHALT_ELECTRIC_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ASPHALT_ELECTRIC_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 8 {								//Parameter for mudyard tramway speed limit
+	        speedlimit_mudyard_tram_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_MUDYARD_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_MUDYARD_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 40;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+	        }
+    }
+	param 9 {								//Parameter for cobblestone tramway speed limit
+	        speedlimit_cobblestone_tram_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_COBBLE_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_COBBLE_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 50;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+	        }
+    }
+	param 10 {								//Parameter for asphalt tramway speed limit
+	        speedlimit_asphalt_tram_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ASPHALT_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ASPHALT_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 11 {								//Parameter for cobble electric tramway speed limit
+	        speedlimit_cobble_tram_electric_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_COBBLE_ELECTRIC_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_COBBLE_ELECTRIC_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 50;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 12 {								//Parameter for asphalt electric tramway speed limit
+	        speedlimit_asphalt_electric_tram_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ASPHALT_ELECTRIC_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ASPHALT_ELECTRIC_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 13 {								//Parameter for ISR road speed limit
+	        speedlimit_isr_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ISR_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ISR_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 14 {								//Parameter for ISR electric road speed limit
+	        speedlimit_isr_electric_road_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ISR_ELECTRIC_ROAD_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ISR_ELECTRIC_ROAD_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 15 {								//Parameter for ISR tram speed limit
+	        speedlimit_isr_tram_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ISR_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ISR_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+	param 16 {								//Parameter for ISR electric tram speed limit
+	        speedlimit_isr_electric_tram_param {			
+	        	type: int;
+	        	name: string(STR_PARAM_NAME_ISR_ELECTRIC_TRAM_SPEEDLIMIT);
+	        	desc: string(STR_PARAM_DESC_ISR_ELECTRIC_TRAM_SPEEDLIMIT);
+	        	min_value: 0;
+	        	max_value: 129;
+	        	def_value: 88;
+	        	names: {
+	        		0: string(STR_NO_LIMITS);
+	        	};
+            }
+    }
+    param 17 {                              //Parameters for enabling all the roadtypes
+	    param_mudyard_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_MUDYARD_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_MUDYARD_ROAD_ENABLE);
+        }
+    }
+    param 18 {
+	    param_cobblestone_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_COBBLE_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_COBBLE_ROAD_ENABLE);
+        }
+    }
+    param 19 {
+	    param_asphalt_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ASPHALT_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ASPHALT_ROAD_ENABLE);
+        }
+    }
+    param 20 {
+	    param_cobblestone_electric_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_COBBLE_ELECTRIC_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_COBBLE_ELECTRIC_ROAD_ENABLE);
+        }
+    }
+    param 21 {
+	    param_asphalt_electric_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ASPHALT_ELECTRIC_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ASPHALT_ELECTRIC_ROAD_ENABLE);
+        }
+    }
+    param 22 {
+	    param_isr_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ISR_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ISR_ROAD_ENABLE);
+        }
+    }
+    param 23 {
+	    param_isr_electric_road_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ISR_ELECTRIC_ROAD_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ISR_ELECTRIC_ROAD_ENABLE);
+        }
+    }
+    param 24 {
+	    param_isr_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ISR_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ISR_TRAM_ENABLE);
+        }
+    }
+    param 25 {
+	    param_isr_electric_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ISR_ELECTRIC_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ISR_ELECTRIC_TRAM_ENABLE);
+        }
+    }
+    param 26 {
+	    param_mudyard_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_MUDYARD_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_MUDYARD_TRAM_ENABLE);
+        }
+    }
+    param 27 {
+	    param_cobblestone_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_COBBLE_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_COBBLE_TRAM_ENABLE);
+        }
+    }
+    param 28 {
+	    param_asphalt_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ASPHALT_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ASPHALT_TRAM_ENABLE);
+        }
+    }
+    param 29 {
+	    param_cobblestone_electric_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_COBBLE_ELECTRIC_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_COBBLE_ELECTRIC_TRAM_ENABLE);
+        }
+    }
+    param 30 {
+	    param_asphalt_electric_tram_enable {
+	    	type:      bool;
+	    	name: string(STR_PARAM_NAME_ASPHALT_ELECTRIC_TRAM_ENABLE);
+	    	desc: string(STR_PARAM_DESC_ASPHALT_ELECTRIC_TRAM_ENABLE);
+        }
+    }
 }
-}
-
 
 // Type Tables
 // -----------
@@ -123,6 +415,7 @@ template tmpl_underlay_roadtypes() {
     ground_tile(150, 130)
     ground_tile( 75, 130)
 }
+
 spriteset(mud_road_underlay, "gfx/Chips_Mud_Road.png") {
     tmpl_underlay_roadtypes()
 }
@@ -487,10 +780,10 @@ template tmpl_wire_normal() {			//regular trolley wire sprites
 	[290, 234, 64, 39, -31, -16]
 	[360, 234, 64, 55, -31, -24]
 
-	[360,  66, 64, 31, -31, -16]
-	[ 10, 122, 64, 31, -31, -16]
-	[ 80, 122, 64, 31, -31, -16]
-	[150, 122, 64, 31, -31, -16]
+	[360,  66, 64, 47, -31, -16]
+	[ 10, 122, 64, 47, -31, -16]
+	[ 80, 122, 64, 47, -31, -16]
+	[150, 122, 64, 47, -31, -16]
 
 	[220, 122, 64, 31, -31, -16]
 	[290, 122, 64, 31, -31, -16]
@@ -564,19 +857,19 @@ spriteset(front_tram_cat, "gfx/wires/front_tram_cat.png") {
 // Type Definitions
 // ----------------
 
-if (style_param == 0 || style_param == 2) {
+if (param_mudyard_road_enable == 1) {
 item(FEAT_ROADTYPES, mud_yard_driveway, 0) {
     property {
         name: string(STR_NAME_YDRD);
         label: "YDRD";
-	speed_limit: 60 km/h;
+	speed_limit: param[3] km/h;
         powered_roadtype_list: ["ROAD", "ELRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_YDRD);
         menu_text: string(STR_MENU_TEXT_YDRD);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_YDRD);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_YDRD);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_YDRD);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_NO_HOUSES): bitmask();
     }
 	graphics {
         underlay: mud_road_underlay;
@@ -588,19 +881,19 @@ item(FEAT_ROADTYPES, mud_yard_driveway, 0) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_cobblestone_road_enable == 1) {
 item(FEAT_ROADTYPES, cobble_road, 1) {
     property {
         name: string(STR_NAME_CBRD);
         label: "CBRD";
-	speed_limit: 60 km/h;
+	speed_limit: param[4] km/h;
         powered_roadtype_list: ["ROAD", "ELRD", "YDRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_CBRD);
         menu_text: string(STR_MENU_TEXT_CBRD);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_CBRD);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_CBRD);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_CBRD);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_NO_HOUSES): bitmask();
     }
 	graphics {
         underlay: cobble_road_underlay;
@@ -612,19 +905,19 @@ item(FEAT_ROADTYPES, cobble_road, 1) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_cobblestone_electric_road_enable == 1) {
 item(FEAT_ROADTYPES, electric_cobble_road, 2) {
     property {
         name: string(STR_NAME_CBRE);
         label: "CBRE";
-	speed_limit: 60 km/h;
+	speed_limit: param[6] km/h;
         powered_roadtype_list: ["ELRD", "PVRE", "ISRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_CBRE);
         menu_text: string(STR_MENU_TEXT_CBRE);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_CBRE);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_CBRE);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_CBRE);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY, ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_CATENARY,ROADTYPE_FLAG_NO_HOUSES): bitmask(ROADTYPE_FLAG_CATENARY);
     }
 	graphics {
         underlay: cobble_road_underlay;
@@ -638,19 +931,19 @@ item(FEAT_ROADTYPES, electric_cobble_road, 2) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_asphalt_road_enable == 1) {
 item(FEAT_ROADTYPES, paved_roadway, 3) {
     property {
         name: string(STR_NAME_PVRD);
         label: "PVRD";
-	speed_limit: 60 km/h;
+	speed_limit: param[5] km/h;
         powered_roadtype_list: ["ROAD", "ELRD", "YDRD", "CBRD", "CBRE", "PVRE", "ISRD", "ISRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_PVRD);
         menu_text: string(STR_MENU_TEXT_PVRD);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_PVRD);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_PVRD);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_PVRD);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_NO_HOUSES): bitmask();
     }
 	graphics {
         underlay: paved_road_underlay;
@@ -662,19 +955,19 @@ item(FEAT_ROADTYPES, paved_roadway, 3) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_asphalt_electric_road_enable == 1) {
 item(FEAT_ROADTYPES, electric_paved_roadway, 4) {
     property {
         name: string(STR_NAME_PVRE);
         label: "PVRE";
-	speed_limit: 60 km/h;
+	speed_limit: param[7] km/h;
         powered_roadtype_list: ["ELRD", "CBRE", "ISRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_PVRE);
         menu_text: string(STR_MENU_TEXT_PVRE);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_PVRE);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_PVRE);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_PVRE);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY, ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_CATENARY,ROADTYPE_FLAG_NO_HOUSES): bitmask(ROADTYPE_FLAG_CATENARY);
     }
 	graphics {
         underlay: paved_road_underlay;
@@ -688,19 +981,19 @@ item(FEAT_ROADTYPES, electric_paved_roadway, 4) {
 }
 }
 
-if (style_param == 1 || style_param == 2) {
+if (param_isr_road_enable == 1) {
 item(FEAT_ROADTYPES, isr_roadwayway, 5) {
     property {
         name: string(STR_NAME_ISRD);
         label: "ISRD";
-	speed_limit: 60 km/h;
+	speed_limit: param[13] km/h;
         powered_roadtype_list: ["ROAD", "ELRD", "YDRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_ISRD);
         menu_text: string(STR_MENU_TEXT_ISRD);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_ISRD);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_ISRD);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_ISRD);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_NO_HOUSES): bitmask();
     }
 	graphics {
         underlay: isr_road_underlay;
@@ -712,19 +1005,19 @@ item(FEAT_ROADTYPES, isr_roadwayway, 5) {
 }
 }
 
-if (style_param == 1 || style_param == 2) {
+if (param_isr_electric_road_enable == 1) {
 item(FEAT_ROADTYPES, electric_isr_roadway, 6) {
     property {
         name: string(STR_NAME_ISRE);
         label: "ISRE";
-	speed_limit: 60 km/h;
+	speed_limit: param[14] km/h;
         powered_roadtype_list: ["ELRD", "CBRE", "PVRE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_ISRE);
         menu_text: string(STR_MENU_TEXT_ISRE);
         build_window_caption: string(STR_BUILD_WINDOW_CAPTION_ISRE);
         autoreplace_text: string(STR_AUTOREPLACE_TEXT_ISRE);
         new_engine_text: string(STR_NEW_ENGINE_TEXT_ISRE);
-        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY, ROADTYPE_FLAG_NO_HOUSES);
+        roadtype_flags: (param_houses == 0) ? bitmask(ROADTYPE_FLAG_CATENARY,ROADTYPE_FLAG_NO_HOUSES): bitmask(ROADTYPE_FLAG_CATENARY);
     }
 	graphics {
         underlay: isr_road_underlay;
@@ -756,7 +1049,7 @@ item(FEAT_ROADTYPES, electric_roadway, 8) {
 
 }
 
-item(FEAT_ROADTYPES, heavy_haul_roadway, 7) {
+item(FEAT_ROADTYPES, heavy_haul_roadway, 9) {
     property {
         label: "HAUL";
         powered_roadtype_list: [ "YDRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
@@ -764,7 +1057,7 @@ item(FEAT_ROADTYPES, heavy_haul_roadway, 7) {
 	}
 }
 
-item(FEAT_ROADTYPES, electric_haul_roadway, 8) {
+item(FEAT_ROADTYPES, electric_haul_roadway, 10) {
     property {
         label: "ELHL";
         powered_roadtype_list: ["CBRE", "PVRE", "ISRE"];
@@ -773,12 +1066,12 @@ item(FEAT_ROADTYPES, electric_haul_roadway, 8) {
 
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_mudyard_tram_enable == 1) {
 item(FEAT_TRAMTYPES, mud_yard_tramway, 0) {
     property {
         name: string(STR_NAME_YDTR);
         label: "YDTR";
-	speed_limit: 60 km/h;
+	speed_limit: param[8] km/h;
         powered_tramtype_list: ["RAIL", "ELRL", "CBTR", "CBTE", "PVTR", "PVTE", "ISTR", "ISTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_YDTR);
         menu_text: string(STR_MENU_TEXT_YDTR);
@@ -796,12 +1089,12 @@ item(FEAT_TRAMTYPES, mud_yard_tramway, 0) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_cobblestone_tram_enable == 1) {
 item(FEAT_TRAMTYPES, cobble_tramway, 1) {
     property {
         name: string(STR_NAME_CBTR);
         label: "CBTR";
-	speed_limit: 60 km/h;
+	speed_limit: param[9] km/h;
         powered_tramtype_list: ["RAIL", "ELRL", "YDTR", "CBTE", "PVTR", "PVTE", "ISTR", "ISTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_CBTR);
         menu_text: string(STR_MENU_TEXT_CBTR);
@@ -820,12 +1113,12 @@ item(FEAT_TRAMTYPES, cobble_tramway, 1) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_cobblestone_electric_tram_enable == 1) {
 item(FEAT_TRAMTYPES, electric_cobble_tramway, 2) {
     property {
         name: string(STR_NAME_CBTE);
         label: "CBTE";
-	speed_limit: 60 km/h;
+	speed_limit: param[11] km/h;
         powered_tramtype_list: ["PVTE", "ISTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_CBTE);
         menu_text: string(STR_MENU_TEXT_CBTE);
@@ -845,12 +1138,12 @@ item(FEAT_TRAMTYPES, electric_cobble_tramway, 2) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_asphalt_tram_enable == 1) {
 item(FEAT_TRAMTYPES, paved_tramway, 3) {
     property {
         name: string(STR_NAME_PVTR);
         label: "PVTR";
-	speed_limit: 60 km/h;
+	speed_limit: param[10] km/h;
         powered_tramtype_list: ["RAIL", "ELRL", "YDTR", "CBTR", "CBTE", "PVTE", "ISTR", "ISTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_PVTR);
         menu_text: string(STR_MENU_TEXT_PVTR);
@@ -868,12 +1161,12 @@ item(FEAT_TRAMTYPES, paved_tramway, 3) {
 }
 }
 
-if (style_param == 0 || style_param == 2) {
+if (param_asphalt_electric_tram_enable == 1) {
 item(FEAT_TRAMTYPES, electric_paved_tramway, 4) {
     property {
         name: string(STR_NAME_PVTE);
         label: "PVTE";
-	speed_limit: 60 km/h;
+	speed_limit: param[12] km/h;
         powered_tramtype_list: ["CBTE", "ISTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_PVTE);
         menu_text: string(STR_MENU_TEXT_PVTE);
@@ -894,12 +1187,12 @@ item(FEAT_TRAMTYPES, electric_paved_tramway, 4) {
 }
 }
 
-if (style_param == 1 || style_param == 2) {
+if (param_isr_tram_enable == 1) {
 item(FEAT_TRAMTYPES, isr_tramway, 5) {
     property {
         name: string(STR_NAME_ISTR);
         label: "ISTR";
-	speed_limit: 60 km/h;
+	speed_limit: param[15] km/h;
         powered_tramtype_list: ["RAIL", "ELRL", "YDTR", "CBTR", "CBTE", "PVTR", "PVTE", "ISTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_ISTR);
         menu_text: string(STR_MENU_TEXT_ISTR);
@@ -917,12 +1210,12 @@ item(FEAT_TRAMTYPES, isr_tramway, 5) {
 }
 }
 
-if (style_param == 1 || style_param == 2) {
+if (param_isr_electric_tram_enable == 1) {
 item(FEAT_TRAMTYPES, electric_isr_tramway, 6) {
     property {
         name: string(STR_NAME_ISTE);
         label: "ISTE";
-	speed_limit: 60 km/h;
+	speed_limit: param[16] km/h;
         powered_tramtype_list: ["CBTE", "PVTE"];
         toolbar_caption: string(STR_TOOLBAR_CAPTION_ISTE);
         menu_text: string(STR_MENU_TEXT_ISTE);

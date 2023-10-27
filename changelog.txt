@@ -1,0 +1,20 @@
+Changelog
+
+
+[1.0.2]
+Added better default speed limits, parameters to enable or disable every roadtype or adjust speed limits, and to enable houses alongside all roads 
+
+[1.0.1]
+Fixed misaligned wire sprites and missing roads
+
+[1.0]
+Now supports company colors on wire poles, and new features in NRT to prevent houses growing along Docklands roadtypes.
+
+[0.11]
+This release adds new depot graphics, and trolleywire sprites from Unspooled.
+
+Additionally, two parameters are added, to select amount of road and tram types, and to select depot graphics. You can reduce the number of types when using Docklands to save slots for use by other roadtype grfs, now that we have a couple out there.
+
+[0.10]
+Initial release
+
