@@ -1,0 +1,962 @@
+// Thanks to Andy for letting me steal a chunk of his NRT NML, and thanks to Wolf and Frosch as well for their work on making NRT happen.
+// ISR, CHIPS, various New Object sets, have tried to approximate visually interesting industrial yards, harbours, and similar areas where vehicles move about doing work rather than travelling from A to B
+// In this set I aim to provide a proof of concept of how NRT might bring these constructions to life
+
+grf {
+	grfid: "DE\04\01";
+	name: string(STR_GRF_NAME);
+	desc: string(STR_GRF_DESCRIPTION);
+	version: 4;
+	min_compatible_version: 4;
+	param 0 {								//Parameter for underlay tile style
+	style_param {			
+		type: int;
+		name: string(STR_PARAM_NAME_STYLES);
+		desc: string(STR_PARAM_DESC_STYLES);
+		min_value: 0;
+		max_value: 2;
+		def_value: 0;
+		names: {
+			0: string(STR_PARAM_VALUE_STYLE_CHIPS);		//Chips & FIRS Style
+			1: string(STR_PARAM_VALUE_STYLE_ISR);		//ISR Style
+			2: string(STR_PARAM_VALUE_STYLE_BOTH);		//Both Styles
+		};
+	}
+}
+
+	param 1 {								//Parameter for depot style
+	depot_param {			
+		type: int;
+		name: string(STR_PARAM_NAME_DEPOTS);
+		desc: string(STR_PARAM_DESC_DEPOTS);
+		min_value: 0;
+		max_value: 4;
+		def_value: 2;
+		names: {
+			0: string(STR_PARAM_VALUE_DEPOT_THEME_WIDE);		//Several Chips & ISR Styles
+			1: string(STR_PARAM_VALUE_DEPOT_THEME_NARROW);		//One Chips and one ISR Style
+			2: string(STR_PARAM_VALUE_DEPOT_THEME_CHRON);		//Year based CHIPS & ISR Depots
+			3: string(STR_PARAM_VALUE_DEPOT_MLSS_WIDE);		//Range of MLSS Style Depots
+			4: string(STR_PARAM_VALUE_DEPOT_MLSS_CHRON);		//Time based MLSS Style
+		};
+	}
+}
+}
+
+
+// Type Tables
+// -----------
+
+// Road Type Selection 
+
+roadtypetable {
+ 	ROAD, ELRD, YDRD, CBRD, CBRE, PVRD, PVRE, ISRD, ISRE, HAUL, ELHL
+ }
+
+
+// Tram Type Selection 
+
+
+tramtypetable {
+ 	RAIL, ELRL, YDTR, CBTR, CBTE, PVTR, PVTE, ISTR, ISTE
+ }
+
+
+
+
+
+// Sprites
+// -------
+
+// Default ground tile template (re-use as needed)
+template ground_tile(x, y) { [x, y, 64, 31, -31, 0] }
+
+// Template for underlays; 2x straight road, 5x junctions, 4x corners, 4x slope, 4x half-tile road
+// Used for bridge surfaces also, therefore the template is split
+
+template tmpl_underlay_straight() {
+    ground_tile( 10, 10)
+    ground_tile( 80, 10)
+}
+template tmpl_underlay_junctions() {
+    ground_tile(150, 10)
+    ground_tile(220, 10)
+    ground_tile(290, 10)
+    ground_tile(360, 10)
+    ground_tile( 10, 50)
+}
+template tmpl_underlay_corners() {
+    ground_tile( 80, 50)
+    ground_tile(150, 50)
+    ground_tile(220, 50)
+    ground_tile(290, 50)
+}
+
+template tmpl_underlay_slope() {
+    [150, 170, 64, 39, -31, -8]
+    [220, 170, 64, 23, -31, 0]
+    [290, 170, 64, 23, -31, 0]
+    [360, 170, 64, 39, -31, -8]
+}
+
+template tmpl_underlay_half_tiles() {
+    ground_tile(360, 50)
+    ground_tile( 10, 90)
+    ground_tile( 80, 90)
+    ground_tile(150, 90)
+}
+
+
+template tmpl_underlay_roadtypes() {
+    tmpl_underlay_straight()
+    tmpl_underlay_junctions()
+    tmpl_underlay_corners()
+    tmpl_underlay_slope()
+    tmpl_underlay_half_tiles()
+
+    /* X-crossing */
+    ground_tile(0, 120)
+
+    /* underlay for crossings w/o tracks */
+    ground_tile(  0, 130)
+    ground_tile(225, 130)
+    ground_tile(150, 130)
+    ground_tile( 75, 130)
+}
+spriteset(mud_road_underlay, "gfx/Chips_Mud_Road.png") {
+    tmpl_underlay_roadtypes()
+}
+
+spriteset(mud_tram_underlay, "gfx/Chips_Mud_Tram.png") {
+    tmpl_underlay_roadtypes()
+}
+spriteset(cobble_road_underlay, "gfx/Chips_Cobble_Road.png") {
+    tmpl_underlay_roadtypes()
+}
+
+spriteset(cobble_tram_underlay, "gfx/Chips_Cobble_Tram.png") {
+    tmpl_underlay_roadtypes()
+}
+spriteset(paved_road_underlay, "gfx/Chips_Asphalt_Road.png") {
+    tmpl_underlay_roadtypes()
+}
+
+spriteset(paved_tram_underlay, "gfx/Chips_Asphalt_Tram.png") {
+    tmpl_underlay_roadtypes()
+}
+
+spriteset(isr_road_underlay, "gfx/ISR_Paved_Road.png") {
+    tmpl_underlay_roadtypes()
+}
+
+spriteset(isr_tram_underlay, "gfx/ISR_Paved_Tram.png") {
+    tmpl_underlay_roadtypes()
+}
+
+// overlays
+template tmpl_overlay_roadtypes() {
+    [ 10, 10, 64, 31, -31, 0]
+    [ 80, 10, 64, 31, -31, 0]
+
+    [150, 10, 64, 31, -31, 0]
+    [220, 10, 64, 31, -31, 0]
+    [290, 10, 64, 31, -31, 0]
+    [360, 10, 64, 31, -31, 0]
+    [ 10, 50, 64, 31, -31, 0]
+
+    [ 80, 50, 64, 31, -31, 0]
+    [150, 50, 64, 31, -31, 0]
+    [220, 50, 64, 31, -31, 0]
+    [290, 50, 64, 31, -31, 0]
+
+    [150, 170, 64, 39, -31, -8]
+    [220, 170, 64, 21, -31, 0]
+    [290, 170, 64, 21, -31, 0]
+    [360, 170, 64, 39, -31, -8]
+
+    [360, 50, 64, 31, -31, 0]
+    [ 10, 90, 64, 31, -31, 0]
+    [ 80, 90, 64, 31, -31, 0]
+    [150, 90, 64, 31, -31, 0]
+}
+
+spriteset(mud_road_overlay, "gfx/Chips_Mud_Over.png") {
+    tmpl_overlay_roadtypes()
+}
+
+spriteset(univ_tram_overlay, "gfx/UNIV_Overlay_Tram.png") {
+    tmpl_overlay_roadtypes()
+}
+
+spriteset(cobble_road_overlay, "gfx/Chips_Cobble_Over.png") {
+    tmpl_overlay_roadtypes()
+}
+
+spriteset(paved_road_overlay, "gfx/Chips_Asphalt_Over.png") {
+    tmpl_overlay_roadtypes()
+}
+
+spriteset(isr_road_overlay, "gfx/ISR_Paved_Over.png") {
+    tmpl_overlay_roadtypes()
+}
+
+// Template for depot sprites
+template tmpl_depot() {
+    [150, 218, 64, 61, -31, -30]
+    [220, 218, 64, 61,  -1, -45]
+    [ 10, 218, 64, 61, -31, -30]
+    [ 80, 218, 64, 61, -61, -45]
+    [290, 218, 64, 61, -61, -45]
+    [360, 218, 64, 61,  -1, -45]
+}
+
+
+spriteset(chips_road_depot_1, "gfx/Chips_Depot_road_1.png") {
+    tmpl_depot()
+}
+spriteset(chips_road_depot_2, "gfx/Chips_Depot_road_2.png") {
+    tmpl_depot()
+}
+spriteset(chips_road_depot_3, "gfx/Chips_Depot_road_3.png") {
+    tmpl_depot()
+}
+spriteset(chips_road_depot_4, "gfx/Chips_Depot_road_4.png") {
+    tmpl_depot()
+}
+spriteset(chips_tram_depot_1, "gfx/Chips_Depot_tram_1.png") {
+    tmpl_depot()
+}
+spriteset(chips_tram_depot_2, "gfx/Chips_Depot_tram_2.png") {
+    tmpl_depot()
+}
+spriteset(chips_tram_depot_3, "gfx/Chips_Depot_tram_3.png") {
+    tmpl_depot()
+}
+spriteset(chips_tram_depot_4, "gfx/Chips_Depot_tram_4.png") {
+    tmpl_depot()
+}
+
+spriteset(isr_road_depot_1, "gfx/ISR_Depot_road_1.png") {
+    tmpl_depot()
+}
+spriteset(isr_road_depot_2, "gfx/ISR_Depot_road_3.png") {
+    tmpl_depot()
+}
+spriteset(isr_road_depot_3, "gfx/ISR_Depot_road_3.png") {
+    tmpl_depot()
+}
+spriteset(isr_tram_depot_1, "gfx/ISR_Depot_tram_1.png") {
+    tmpl_depot()
+}
+spriteset(isr_tram_depot_2, "gfx/ISR_Depot_tram_3.png") {
+    tmpl_depot()
+}
+spriteset(isr_tram_depot_3, "gfx/ISR_Depot_tram_3.png") {
+    tmpl_depot()
+}
+
+spriteset(mlss_road_depot_1, "gfx/MLSS_Depot_road_1.png") {
+    tmpl_depot()
+}
+spriteset(mlss_road_depot_2, "gfx/MLSS_Depot_road_2.png") {
+    tmpl_depot()
+}
+spriteset(mlss_road_depot_3, "gfx/MLSS_Depot_road_3.png") {
+    tmpl_depot()
+}
+spriteset(mlss_road_depot_4, "gfx/MLSS_Depot_road_4.png") {
+    tmpl_depot()
+}
+spriteset(mlss_tram_depot_1, "gfx/MLSS_Depot_tram_1.png") {
+    tmpl_depot()
+}
+spriteset(mlss_tram_depot_2, "gfx/MLSS_Depot_tram_2.png") {
+    tmpl_depot()
+}
+spriteset(mlss_tram_depot_3, "gfx/MLSS_Depot_tram_3.png") {
+    tmpl_depot()
+}
+spriteset(mlss_tram_depot_4, "gfx/MLSS_Depot_tram_4.png") {
+    tmpl_depot()
+}
+
+//Depot Era Switches
+
+switch(FEAT_ROADTYPES, SELF, switch_chips_road_eras, build_date) {	//switch based on CHIPS RV depot build year
+	date(0000,01,01)..date(1910,01,01): chips_road_depot_1; 
+	date(1910,01,02)..date(1950,01,01): chips_road_depot_2; 
+	date(1950,01,02)..date(1985,01,01): chips_road_depot_3; 
+	date(1985,01,02)..date(5000000,01,01): chips_road_depot_4; 
+	}
+
+switch(FEAT_TRAMTYPES, SELF, switch_chips_tram_eras, build_date) {	//switch based on CHIPS tram depot build year
+	date(0000,01,01)..date(1910,01,01): chips_tram_depot_1; 
+	date(1910,01,02)..date(1950,01,01): chips_tram_depot_2; 
+	date(1950,01,02)..date(1985,01,01): chips_tram_depot_3; 
+	date(1985,01,02)..date(5000000,01,01): chips_tram_depot_4; 
+	}
+
+switch(FEAT_ROADTYPES, SELF, switch_isr_road_eras, build_date) {	//switch based on ISR RV depot build year
+	date(0000,01,01)..date(1940,01,01): isr_road_depot_1; 
+	date(1940,01,02)..date(1950,01,01): isr_road_depot_2; 
+	date(1970,01,02)..date(5000000,01,01): isr_road_depot_3; 
+}
+
+switch(FEAT_TRAMTYPES, SELF, switch_isr_tram_eras, build_date) {	//switch based on ISR tram depot build year
+	date(0000,01,01)..date(1940,01,01): isr_tram_depot_1; 
+	date(1940,01,02)..date(1970,01,01): isr_tram_depot_2; 
+	date(1970,01,02)..date(5000000,01,01): isr_tram_depot_3; 
+	}
+
+switch(FEAT_ROADTYPES, SELF, switch_mlss_road_eras, build_date) {	//switch based on MLSS RV depot build year
+	date(0000,01,01)..date(1910,01,01): mlss_road_depot_1; 
+	date(1910,01,02)..date(1950,01,01): mlss_road_depot_2; 
+	date(1950,01,02)..date(1985,01,01): mlss_road_depot_3; 
+	date(1985,01,02)..date(5000000,01,01): mlss_road_depot_4; 
+	}
+
+switch(FEAT_TRAMTYPES, SELF, switch_mlss_tram_eras, build_date) {	//switch based on MLSS tram depot build year
+	date(0000,01,01)..date(1910,01,01): mlss_tram_depot_1; 
+	date(1910,01,02)..date(1950,01,01): mlss_tram_depot_2; 
+	date(1950,01,02)..date(1985,01,01): mlss_tram_depot_3; 
+	date(1985,01,02)..date(5000000,01,01): mlss_tram_depot_4; 
+	}
+
+//Switches to select spritesets by parameter
+
+switch(FEAT_ROADTYPES, SELF, switch_mud_road_depot, depot_param) {	//switch for mud yard road
+	0: chips_road_depot_1; 						//use a depot specific to this type
+	1: chips_road_depot_3; 						//use standard depot for style
+	2: switch_chips_road_eras; 					//use depot for style by build date
+	3: mlss_road_depot_1; 						//use a specific MLSS depot
+	4: switch_mlss_road_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_TRAMTYPES, SELF, switch_mud_tram_depot, depot_param) {	//switch for mud yard tram
+	0: chips_tram_depot_1; 						//use a depot specific to this type
+	1: chips_tram_depot_3; 						//use standard depot for style
+	2: switch_chips_tram_eras; 					//use depot for style by build date
+	3: mlss_tram_depot_1; 						//use a specific MLSS depot
+	4: switch_mlss_tram_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_ROADTYPES, SELF, switch_cobble_road_depot, depot_param) {	//switch for cobble yard road
+	0: chips_road_depot_2; 						//use a depot specific to this type
+	1: chips_road_depot_3; 						//use standard depot for style
+	2: switch_chips_road_eras; 					//use depot for style by build date
+	3: mlss_road_depot_1; 						//use a specific MLSS depot
+	4: switch_mlss_road_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_TRAMTYPES, SELF, switch_cobble_tram_depot, depot_param) {	//switch for cobble yard tram
+	0: chips_tram_depot_2; 						//use a depot specific to this type
+	1: chips_tram_depot_3; 						//use standard depot for style
+	2: switch_chips_tram_eras; 					//use depot for style by build date
+	3: mlss_tram_depot_1; 						//use a specific MLSS depot
+	4: switch_mlss_tram_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_ROADTYPES, SELF, switch_paved_road_depot, depot_param) {	//switch for paved yard road
+	0: chips_road_depot_3; 						//use a depot specific to this type
+	1: chips_road_depot_3; 						//use standard depot for style
+	2: switch_chips_road_eras; 					//use depot for style by build date
+	3: mlss_road_depot_2; 						//use a specific MLSS depot
+	4: switch_mlss_road_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_TRAMTYPES, SELF, switch_paved_tram_depot, depot_param) {	//switch for paved yard tram
+	0: chips_tram_depot_3; 						//use a depot specific to this type
+	1: chips_tram_depot_3; 						//use standard depot for style
+	2: switch_chips_tram_eras; 					//use depot for style by build date
+	3: mlss_tram_depot_2; 						//use a specific MLSS depot
+	4: switch_mlss_tram_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_ROADTYPES, SELF, switch_isr_road_depot, depot_param) {	//switch for isr yard road
+	0: isr_road_depot_1; 						//use a depot specific to this type
+	1: isr_road_depot_2; 						//use standard depot for style
+	2: switch_isr_road_eras; 					//use depot for style by build date
+	3: mlss_road_depot_3; 						//use a specific MLSS depot
+	4: switch_mlss_road_eras;					//use a MLSS depot by build date
+	}
+
+switch(FEAT_TRAMTYPES, SELF, switch_isr_tram_depot, depot_param) {	//switch for isr yard tram
+	0: isr_tram_depot_3; 						//use a depot specific to this type
+	1: isr_tram_depot_2; 						//use standard depot for style
+	2: switch_isr_tram_eras; 					//use depot for style by build date
+	3: mlss_tram_depot_3; 						//use a specific MLSS depot
+	4: switch_mlss_tram_eras;					//use a MLSS depot by build date
+	}
+
+// Bridge surface, uses the same sprites as track underlays, but in a different order
+
+
+template tmpl_bridge_straight() {
+    ground_tile( 10, 288)
+    ground_tile( 80, 288)
+}
+template tmpl_bridge_slope() {
+    [150, 288, 64, 39, -31, -8]
+    [220, 288, 64, 23, -31, 0]
+    [290, 288, 64, 23, -31, 0]
+    [360, 288, 64, 39, -31, -8]
+}
+
+template tmpl_bridge_surfaces() {
+    tmpl_bridge_straight()
+    tmpl_bridge_slope()
+    
+}
+
+
+spriteset(mud_road_bridge_surfaces, "gfx/Chips_Cobble_Road.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(mud_tram_bridge_surfaces, "gfx/Chips_Cobble_Tram.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(cobble_road_bridge_surfaces, "gfx/Chips_Cobble_Road.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(cobble_tram_bridge_surfaces, "gfx/Chips_Cobble_Tram.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(paved_road_bridge_surfaces, "gfx/Chips_Cobble_Road.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(paved_tram_bridge_surfaces, "gfx/Chips_Cobble_Tram.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(isr_road_bridge_surfaces, "gfx/Chips_Cobble_Road.png") {
+    tmpl_bridge_surfaces()
+}
+
+spriteset(isr_tram_bridge_surfaces, "gfx/Chips_Cobble_Tram.png") {
+    tmpl_bridge_surfaces()
+}
+
+// Roadstop sprites:
+template tmpl_underlay_roadstop() {
+    ground_tile(220, 90)
+    ground_tile(290, 90)
+    ground_tile(360, 90)
+    ground_tile(10, 130)
+}
+spriteset(mud_road_roadstops, "gfx/Chips_Mud_Road.png") {
+    tmpl_underlay_roadstop()
+}
+
+spriteset(cobble_road_roadstops, "gfx/Chips_Cobble_Road.png") {
+    tmpl_underlay_roadstop()
+}
+
+spriteset(paved_road_roadstops, "gfx/Chips_Asphalt_Road.png") {
+    tmpl_underlay_roadstop()
+}
+
+spriteset(isr_road_roadstops, "gfx/ISR_Paved_Road.png") {
+    tmpl_underlay_roadstop()
+}
+
+
+//Trolley Wires
+    
+template tmpl_wire_normal() {			//regular trolley wire sprites 
+	[ 10, 10, 64, 47, -31, -16]
+	[ 80, 10, 64, 47, -31, -16]
+
+	[150, 10, 64, 47, -31, -16]
+	[220, 10, 64, 47, -31, -16]
+	[290, 10, 64, 47, -31, -16]
+	[360, 10, 64, 47, -31, -16]
+	[ 10, 66, 64, 47, -31, -16]
+
+	[ 80, 66, 64, 47, -31, -16]
+	[150, 66, 64, 47, -31, -16]
+	[220, 66, 64, 47, -31, -16]
+	[290, 66, 64, 31, -31, -16]
+
+	[150, 234, 64, 55, -31, -24]
+	[220, 234, 64, 39, -31, -16]
+	[290, 234, 64, 39, -31, -16]
+	[360, 234, 64, 55, -31, -24]
+
+	[360,  66, 64, 31, -31, -16]
+	[ 10, 122, 64, 31, -31, -16]
+	[ 80, 122, 64, 31, -31, -16]
+	[150, 122, 64, 31, -31, -16]
+
+	[220, 122, 64, 31, -31, -16]
+	[290, 122, 64, 31, -31, -16]
+	[360, 122, 64, 31, -31, -16]
+	[ 10, 178, 64, 31, -31, -16]
+}
+
+template tmpl_wire_bridge() {			//trolley wire for bridges
+	[ 10, 298, 64, 47, -31, -16]
+	[ 80, 298, 64, 47, -31, -16]
+	[150, 298, 64, 55, -31, -24]
+	[220, 298, 64, 39, -31, -16]
+	[290, 298, 64, 39, -31, -16]
+	[360, 298, 64, 55, -31, -24]
+
+}
+
+template tmpl_wire_roadtypes() {		//combine the two to allow bridge to use different png - doesn't work :(
+    tmpl_wire_normal()
+    tmpl_wire_bridge()
+}
+
+spriteset(rear_bus_wood, "gfx/wires/rear_wood.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(rear_bus_galv, "gfx/wires/rear_galv.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(rear_bus_cat, "gfx/wires/rear_cat.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(front_bus_wood, "gfx/wires/front_bus_wood.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(front_bus_galv, "gfx/wires/front_bus_galv.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(front_bus_cat, "gfx/wires/front_bus_cat.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(rear_tram_wood, "gfx/wires/rear_wood.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(rear_tram_galv, "gfx/wires/rear_galv.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(rear_tram_cat, "gfx/wires/rear_cat.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(front_tram_wood, "gfx/wires/front_tram_wood.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(front_tram_galv, "gfx/wires/front_tram_galv.png") {
+    tmpl_wire_roadtypes()
+}
+
+spriteset(front_tram_cat, "gfx/wires/front_tram_cat.png") {
+    tmpl_wire_roadtypes()
+}
+
+// Type Definitions
+// ----------------
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_ROADTYPES, mud_yard_driveway, 0) {
+    property {
+        name: string(STR_NAME_YDRD);
+        label: "YDRD";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ROAD", "ELRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_YDRD);
+        menu_text: string(STR_MENU_TEXT_YDRD);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_YDRD);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_YDRD);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_YDRD);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: mud_road_underlay;
+        track_overlay: mud_road_overlay;
+        depots: switch_mud_road_depot;
+        bridge_surfaces: mud_road_bridge_surfaces;
+        roadstops: mud_road_roadstops;
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_ROADTYPES, cobble_road, 1) {
+    property {
+        name: string(STR_NAME_CBRD);
+        label: "CBRD";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ROAD", "ELRD", "YDRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_CBRD);
+        menu_text: string(STR_MENU_TEXT_CBRD);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_CBRD);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_CBRD);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_CBRD);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: cobble_road_underlay;
+        track_overlay: cobble_road_overlay;
+        depots: switch_cobble_road_depot;
+        bridge_surfaces: cobble_road_bridge_surfaces;
+        roadstops: cobble_road_roadstops;
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_ROADTYPES, electric_cobble_road, 2) {
+    property {
+        name: string(STR_NAME_CBRE);
+        label: "CBRE";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ELRD", "PVRE", "ISRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_CBRE);
+        menu_text: string(STR_MENU_TEXT_CBRE);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_CBRE);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_CBRE);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_CBRE);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY, ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: cobble_road_underlay;
+        track_overlay: cobble_road_overlay;
+        depots: switch_cobble_road_depot;
+        bridge_surfaces: cobble_road_bridge_surfaces;
+        roadstops: cobble_road_roadstops;
+	catenary_back: rear_bus_wood;
+	catenary_front: front_bus_wood;
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_ROADTYPES, paved_roadway, 3) {
+    property {
+        name: string(STR_NAME_PVRD);
+        label: "PVRD";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ROAD", "ELRD", "YDRD", "CBRD", "CBRE", "PVRE", "ISRD", "ISRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_PVRD);
+        menu_text: string(STR_MENU_TEXT_PVRD);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_PVRD);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_PVRD);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_PVRD);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: paved_road_underlay;
+        track_overlay: paved_road_overlay;
+        depots: switch_paved_road_depot;
+        bridge_surfaces: paved_road_bridge_surfaces;
+        roadstops: paved_road_roadstops;
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_ROADTYPES, electric_paved_roadway, 4) {
+    property {
+        name: string(STR_NAME_PVRE);
+        label: "PVRE";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ELRD", "CBRE", "ISRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_PVRE);
+        menu_text: string(STR_MENU_TEXT_PVRE);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_PVRE);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_PVRE);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_PVRE);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY, ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: paved_road_underlay;
+        track_overlay: paved_road_overlay;
+        depots: switch_paved_road_depot;
+        bridge_surfaces: paved_road_bridge_surfaces;
+        roadstops: paved_road_roadstops;
+	catenary_back: rear_bus_galv;
+	catenary_front: front_bus_galv;
+	}
+}
+}
+
+if (style_param == 1 || style_param == 2) {
+item(FEAT_ROADTYPES, isr_roadwayway, 5) {
+    property {
+        name: string(STR_NAME_ISRD);
+        label: "ISRD";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ROAD", "ELRD", "YDRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_ISRD);
+        menu_text: string(STR_MENU_TEXT_ISRD);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_ISRD);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_ISRD);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_ISRD);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: isr_road_underlay;
+        track_overlay: isr_road_overlay;
+        depots: switch_isr_road_depot;
+        bridge_surfaces: isr_road_bridge_surfaces;
+        roadstops: isr_road_roadstops;
+	}
+}
+}
+
+if (style_param == 1 || style_param == 2) {
+item(FEAT_ROADTYPES, electric_isr_roadway, 6) {
+    property {
+        name: string(STR_NAME_ISRE);
+        label: "ISRE";
+	speed_limit: 60 km/h;
+        powered_roadtype_list: ["ELRD", "CBRE", "PVRE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_ISRE);
+        menu_text: string(STR_MENU_TEXT_ISRE);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_ISRE);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_ISRE);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_ISRE);
+        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY, ROADTYPE_FLAG_NO_HOUSES);
+    }
+	graphics {
+        underlay: isr_road_underlay;
+        track_overlay: isr_road_overlay;
+        depots: switch_isr_road_depot;
+        bridge_surfaces: isr_road_bridge_surfaces;
+        roadstops: isr_road_roadstops;
+	catenary_back: rear_bus_galv;
+	catenary_front: front_bus_galv;
+	}
+}
+}
+
+item(FEAT_ROADTYPES, normal_roadway, 7) {
+    property {
+        label: "ROAD";
+        powered_roadtype_list: ["ELRD", "YDRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
+	   introduces_roadtype_list: ["ELRD", "YDRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
+	}
+}
+
+item(FEAT_ROADTYPES, electric_roadway, 8) {
+    property {
+        label: "ELRD";
+        powered_roadtype_list: ["CBRE", "PVRE", "ISRE"];
+	   introduces_roadtype_list: ["CBRE", "PVRE", "ISRE"];
+        roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY);
+    }
+
+}
+
+item(FEAT_ROADTYPES, heavy_haul_roadway, 7) {
+    property {
+        label: "HAUL";
+        powered_roadtype_list: [ "YDRD", "CBRD", "CBRE", "PVRD", "PVRE", "ISRD", "ISRE"];
+	   
+	}
+}
+
+item(FEAT_ROADTYPES, electric_haul_roadway, 8) {
+    property {
+        label: "ELHL";
+        powered_roadtype_list: ["CBRE", "PVRE", "ISRE"];
+	    roadtype_flags: bitmask(ROADTYPE_FLAG_CATENARY);
+    }
+
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_TRAMTYPES, mud_yard_tramway, 0) {
+    property {
+        name: string(STR_NAME_YDTR);
+        label: "YDTR";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["RAIL", "ELRL", "CBTR", "CBTE", "PVTR", "PVTE", "ISTR", "ISTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_YDTR);
+        menu_text: string(STR_MENU_TEXT_YDTR);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_YDTR);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_YDTR);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_YDTR);
+        
+    }
+	graphics {
+        underlay: mud_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_mud_tram_depot;
+        bridge_surfaces: mud_tram_bridge_surfaces;
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_TRAMTYPES, cobble_tramway, 1) {
+    property {
+        name: string(STR_NAME_CBTR);
+        label: "CBTR";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["RAIL", "ELRL", "YDTR", "CBTE", "PVTR", "PVTE", "ISTR", "ISTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_CBTR);
+        menu_text: string(STR_MENU_TEXT_CBTR);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_CBTR);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_CBTR);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_CBTR);
+    }
+	graphics {
+        underlay: cobble_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_cobble_tram_depot;
+        bridge_surfaces: cobble_tram_bridge_surfaces;
+
+        
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_TRAMTYPES, electric_cobble_tramway, 2) {
+    property {
+        name: string(STR_NAME_CBTE);
+        label: "CBTE";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["PVTE", "ISTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_CBTE);
+        menu_text: string(STR_MENU_TEXT_CBTE);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_CBTE);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_CBTE);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_CBTE);
+        tramtype_flags: bitmask(TRAMTYPE_FLAG_CATENARY);
+    }
+	graphics {
+        underlay: cobble_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_cobble_tram_depot;
+        bridge_surfaces: cobble_tram_bridge_surfaces;
+	catenary_back: rear_tram_wood;
+	catenary_front: front_tram_wood;        
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_TRAMTYPES, paved_tramway, 3) {
+    property {
+        name: string(STR_NAME_PVTR);
+        label: "PVTR";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["RAIL", "ELRL", "YDTR", "CBTR", "CBTE", "PVTE", "ISTR", "ISTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_PVTR);
+        menu_text: string(STR_MENU_TEXT_PVTR);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_PVTR);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_PVTR);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_PVTR);
+    }
+	graphics {
+        underlay: paved_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_paved_tram_depot;
+        bridge_surfaces: paved_tram_bridge_surfaces;
+        
+	}
+}
+}
+
+if (style_param == 0 || style_param == 2) {
+item(FEAT_TRAMTYPES, electric_paved_tramway, 4) {
+    property {
+        name: string(STR_NAME_PVTE);
+        label: "PVTE";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["CBTE", "ISTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_PVTE);
+        menu_text: string(STR_MENU_TEXT_PVTE);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_PVTE);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_PVTE);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_PVTE);
+        tramtype_flags: bitmask(TRAMTYPE_FLAG_CATENARY);
+    }
+	graphics {
+        underlay: paved_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_paved_tram_depot;
+        bridge_surfaces: paved_tram_bridge_surfaces;
+	catenary_back: rear_tram_galv;
+	catenary_front: front_tram_galv;
+      
+	}
+}
+}
+
+if (style_param == 1 || style_param == 2) {
+item(FEAT_TRAMTYPES, isr_tramway, 5) {
+    property {
+        name: string(STR_NAME_ISTR);
+        label: "ISTR";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["RAIL", "ELRL", "YDTR", "CBTR", "CBTE", "PVTR", "PVTE", "ISTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_ISTR);
+        menu_text: string(STR_MENU_TEXT_ISTR);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_ISTR);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_ISTR);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_ISTR);
+    }
+	graphics {
+        underlay: isr_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_isr_tram_depot;
+        bridge_surfaces: isr_tram_bridge_surfaces;
+      
+	}
+}
+}
+
+if (style_param == 1 || style_param == 2) {
+item(FEAT_TRAMTYPES, electric_isr_tramway, 6) {
+    property {
+        name: string(STR_NAME_ISTE);
+        label: "ISTE";
+	speed_limit: 60 km/h;
+        powered_tramtype_list: ["CBTE", "PVTE"];
+        toolbar_caption: string(STR_TOOLBAR_CAPTION_ISTE);
+        menu_text: string(STR_MENU_TEXT_ISTE);
+        build_window_caption: string(STR_BUILD_WINDOW_CAPTION_ISTE);
+        autoreplace_text: string(STR_AUTOREPLACE_TEXT_ISTE);
+        new_engine_text: string(STR_NEW_ENGINE_TEXT_ISTE);
+        tramtype_flags: bitmask(TRAMTYPE_FLAG_CATENARY);
+    }
+	graphics {
+        underlay: isr_tram_underlay;
+        track_overlay: univ_tram_overlay;
+        depots: switch_isr_tram_depot;
+        bridge_surfaces: isr_tram_bridge_surfaces;
+	catenary_back: rear_tram_galv;
+	catenary_front: front_tram_galv;
+     
+	}
+}
+}
+
+item(FEAT_TRAMTYPES, normal_tramway, 7) {
+    property {
+        label: "RAIL";
+        powered_tramtype_list: ["ELRL", "YDTR", "CBTR", "CBTE", "PVTR", "PVTE", "ISTR", "ISTE"];
+        introduces_tramtype_list: ["ELRL", "YDTR", "CBTR", "CBTE", "PVTR", "PVTE", "ISTR", "ISTE"];
+	}
+}
+
+item(FEAT_TRAMTYPES, electric_tramway, 8) {
+    property {
+        label: "ELRL";
+        powered_tramtype_list: ["CBTE", "PVTE", "ISTE"];
+	   introduces_tramtype_list: ["CBTE", "PVTE", "ISTE"];
+        tramtype_flags: bitmask(TRAMTYPE_FLAG_CATENARY);
+    }
+
+}    
