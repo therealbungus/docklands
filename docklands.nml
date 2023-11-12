@@ -10,7 +10,7 @@
 
 
 grf {
-	grfid: "DE\04\01";
+	grfid: "BBDL";
 	name: string(STR_GRF_NAME);
 	desc: string(STR_GRF_DESCRIPTION);
 	version: 6;
